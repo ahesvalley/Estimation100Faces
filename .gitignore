@@ -1,0 +1,6 @@
+app
+*.csv
+*.docx
+*.xlsx
+preparingData.py
+tokens.py
