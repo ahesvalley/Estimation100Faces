@@ -13,6 +13,7 @@ from keras.models import load_model
 from tensorflow.keras.layers import Input
 from estimate import estimation
 from tokens import botToken as token
+import os
 
 bot = telebot.TeleBot(token)
 rooms = 0
@@ -64,7 +65,7 @@ def chooseVariant(call):
     elif call.data == "uploadFile":
         # bot.send_message(call.message.chat.id, 'Пока работаем над этим.')
         bot.send_message(call.message.chat.id, text="Загрузите файл по шаблону")
-        with open('./6 задача_пример расчета.xlsx', "rb") as file:
+        with open('./Шаблон (не называйте также файл).xlsx', "rb") as file:
             bot.send_document(call.message.chat.id, document=file)
         bot.register_next_step_handler(call.message, uploadFile)
 
@@ -303,21 +304,24 @@ def again(message):
 
 @bot.message_handler(content_types=['document'])
 def uploadFile(message):
-    # try:
-    chat_id = message.chat.id
+    try:
+        chat_id = message.chat.id
 
-    file_info = bot.get_file(message.document.file_id)
-    downloaded_file = bot.download_file(file_info.file_path)
-    print(file_info.file_path)
-    src = f'./{message.document.file_name}';
-    with open(src, 'wb') as new_file:
-        new_file.write(downloaded_file)
-    bot.reply_to(message, "Обрабатываем")
-    l = readExcel(src)
-    predUnscaled = estimation(l['rooms'], l['metro'], l['metroDistance'], l['floor'], l['floors'], l['area'], l['isLastFloor'], l['wc'], l['balcon'], l['houseType'])
-    bot.reply_to(message, text=f'Стоимость квартиры: {predUnscaled} рублей')
-    # except Exception as e:
-    #     bot.reply_to(message, f'ошибка {e}')
-    
+        file_info = bot.get_file(message.document.file_id)
+        downloaded_file = bot.download_file(file_info.file_path)
+        print(file_info.file_path)
+        src = f'./{message.document.file_name}';
+        with open(src, 'wb') as new_file:
+            new_file.write(downloaded_file)
+        bot.reply_to(message, "Обрабатываем")
+        readExcel(src)
+        with open('./Результат оценки.xlsx', "rb") as file:
+            bot.send_document(message.from_user.id, document=file)
+        os.remove('./Результат оценки.xlsx')
+        os.remove(src)
+        
+    except Exception as e:
+        bot.reply_to(message, f'ошибка {e}')
+        os.remove(src)
 bot.polling(none_stop=True, interval=0)
 
