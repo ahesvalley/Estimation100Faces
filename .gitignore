@@ -4,3 +4,5 @@ app
 *.xlsx
 preparingData.py
 tokens.py
+__pycache__
+*.pyc

@@ -5,6 +5,7 @@ from telebot import types
 from cmath import nan
 import numpy as np #Библиотека работы с массивами
 import pandas as pd # Библиотека для работы с базами
+from readExcel import readExcel
 
 from sklearn.preprocessing import StandardScaler 
 from tensorflow.keras import utils #Используем для to_categoricallS
@@ -62,7 +63,9 @@ def chooseVariant(call):
         bot.send_message(call.message.chat.id, text='Всегда можешь начать заново, нажав на кнопку', reply_markup=keyboard)
     elif call.data == "uploadFile":
         # bot.send_message(call.message.chat.id, 'Пока работаем над этим.')
-        bot.send_message(call.message.chat.id, text="Загрузите файл")
+        bot.send_message(call.message.chat.id, text="Загрузите файл по шаблону")
+        with open('./6 задача_пример расчета.xlsx', "rb") as file:
+            bot.send_document(call.message.chat.id, document=file)
         bot.register_next_step_handler(call.message, uploadFile)
 
 @bot.callback_query_handler(func=lambda call: call.data == 'yes' or call.data == 'no')
@@ -134,7 +137,10 @@ def askBalkon(call):
 
 @bot.callback_query_handler(func=lambda call: True)
 def callback_worker(call):
+    global isLastFloor
     if call.data == "right" :
+        if (floor == floors):
+            isLastFloor = 1
         print([rooms, metro,metroDistance,floor,floors,area,isLastFloor,wc,balcon, houseType])
         predUnscaled = estimation(1, metro,metroDistance,floor,floors,area,isLastFloor,wc,balcon, houseType)
         bot.send_message(call.message.chat.id, text=f'Стоимость квартиры: {predUnscaled} рублей')
@@ -297,19 +303,21 @@ def again(message):
 
 @bot.message_handler(content_types=['document'])
 def uploadFile(message):
-    try:
-        chat_id = message.chat.id
+    # try:
+    chat_id = message.chat.id
 
-        file_info = bot.get_file(message.document.file_id)
-        downloaded_file = bot.download_file(file_info.file_path)
-        print(file_info.file_path)
-        src = f'./{message.document.file_name}';
-        with open(src, 'wb') as new_file:
-            new_file.write(downloaded_file)
-
-        bot.reply_to(message, "Обрабатываем")
-    except Exception as e:
-        bot.reply_to(message, e)
+    file_info = bot.get_file(message.document.file_id)
+    downloaded_file = bot.download_file(file_info.file_path)
+    print(file_info.file_path)
+    src = f'./{message.document.file_name}';
+    with open(src, 'wb') as new_file:
+        new_file.write(downloaded_file)
+    bot.reply_to(message, "Обрабатываем")
+    l = readExcel(src)
+    predUnscaled = estimation(l['rooms'], l['metro'], l['metroDistance'], l['floor'], l['floors'], l['area'], l['isLastFloor'], l['wc'], l['balcon'], l['houseType'])
+    bot.reply_to(message, text=f'Стоимость квартиры: {predUnscaled} рублей')
+    # except Exception as e:
+    #     bot.reply_to(message, f'ошибка {e}')
     
 bot.polling(none_stop=True, interval=0)
 
