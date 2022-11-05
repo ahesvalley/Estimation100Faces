@@ -26,7 +26,7 @@ isLastFloor = 0
 balcon = ''
 wc = ''
 houseType = ''
-listOfBalcon = {'Лоджия':'Л', 'Балкон':'Б'}
+listOfBalcon = {'Лоджия':'Л', 'Балкон':'Б', 'Нет балкона':'noBalcon'}
 listOfWC = {'Раздельный':'Р', 'Совмещенный':'С'}
 listOfHouseType = {'Монолитный':'М', 'Кирпичный':'К', 'Панельный':'П', 'Не знаю':'-'}
 @bot.message_handler(content_types=['text'])
@@ -39,31 +39,15 @@ def get_text_messages(message):
     question = 'Привет, давайте оценим квартиру?'
     if message.text.lower() == "/start":
         bot.send_message(message.from_user.id, text=question, reply_markup=keyboard)
-    elif message.text == "/help":
-        bot.send_message(message.from_user.id, "Напишите /start")
     else:
-        bot.send_message(message.from_user.id, "Я тебя не понимаю. Напиши /help.")
-@bot.callback_query_handler(func=lambda call: call.data == 'go')
-def addButtons(call):
-    markup=types.ReplyKeyboardMarkup(resize_keyboard=True)
-    item1=types.KeyboardButton("Шаг назад")
-    item2 = types.KeyboardButton("Начать заново")	
-    item3 = types.KeyboardButton("Закончить")	
-    markup.add(item1)
-    markup.add(item2)
-    markup.add(item3)
-    bot.send_message(call.message.chat.id, text='Начнем. Напишите количество комнат в квартире.', reply_markup=markup)
-    bot.register_next_step_handler(call.message, askRooms)
+        bot.send_message(message.from_user.id, "Не понимаю. /start, чтобы начать работу.")
 
 @bot.callback_query_handler(func=lambda call: call.data == 'oneFlat' or call.data == 'uploadFile')
 def chooseVariant(call):
     if call.data == "oneFlat":
-        keyboard = types.InlineKeyboardMarkup();
-        go = types.InlineKeyboardButton(text='Далее', callback_data='go');
-        keyboard.add(go)
-        bot.send_message(call.message.chat.id, text='Всегда можешь начать заново, нажав на кнопку', reply_markup=keyboard)
+        bot.send_message(call.message.chat.id, text='Начнем. Напишите количество комнат в квартире.')
+        bot.register_next_step_handler(call.message, askRooms)
     elif call.data == "uploadFile":
-        # bot.send_message(call.message.chat.id, 'Пока работаем над этим.')
         bot.send_message(call.message.chat.id, text="Загрузите файл по шаблону")
         with open('./Шаблон (не называйте также файл).xlsx', "rb") as file:
             bot.send_document(call.message.chat.id, document=file)
@@ -118,6 +102,8 @@ def askWC(call):
 def askBalkon(call):    
     global balcon
     balcon = call.data
+    if call.data == 'noBalcon':
+        balcon = '-'
     keyboard = types.InlineKeyboardMarkup(); #наша клавиатура
     key_yes = types.InlineKeyboardButton(text='Да', callback_data='right'); #кнопка «Да»
     keyboard.add(key_yes); #добавляем кнопку в клавиатуру
@@ -129,7 +115,7 @@ def askBalkon(call):
     bot.send_message(call.message.chat.id, f'Путь до метро: {metroDistance}')
     bot.send_message(call.message.chat.id, f'Этаж: {floor} из {floors}')
     bot.send_message(call.message.chat.id, f'Площадь: {area}')
-    bot.send_message(call.message.chat.id, f'Площадь: {houseType}')
+    bot.send_message(call.message.chat.id, f'Тип дома: {houseType}')
     bot.send_message(call.message.chat.id, f'Санузел: {wc}')
     bot.send_message(call.message.chat.id, f'Балкон {balcon}')
     bot.send_message(call.message.chat.id, f'Все верно?', reply_markup=keyboard)
@@ -290,9 +276,6 @@ def askArea(message):
 
 
 
-# def modelling(message):
-# @bot.callback_query_handler(func=lambda call: True)
-# def callback_worker(call):
 def again(message):
     keyboard = types.InlineKeyboardMarkup(); #наша клавиатура
     oneFlat = types.InlineKeyboardButton(text='Ввести данные вручную', callback_data='oneFlat'); #кнопка «Да»
@@ -319,7 +302,7 @@ def uploadFile(message):
             bot.send_document(message.from_user.id, document=file)
         os.remove('./Результат оценки.xlsx')
         os.remove(src)
-        
+        bot.send_message(message.from_user.id, text='Начнем заново, /start', reply_markup=types.ReplyKeyboardRemove())
     except Exception as e:
         bot.reply_to(message, f'ошибка {e}')
         os.remove(src)

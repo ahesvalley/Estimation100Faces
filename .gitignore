@@ -6,3 +6,4 @@ preparingData.py
 tokens.py
 __pycache__
 *.pyc
+venv
